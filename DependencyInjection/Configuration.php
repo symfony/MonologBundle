@@ -251,6 +251,7 @@ use Monolog\Logger;
  *   - [bubble]: bool, defaults to true
  *   - [timeout]: float
  *   - [connection_timeout]: float
+ *   - [exclude_fields]: array, defaults to empty array
  *
  * - slackwebhook:
  *   - webhook_url: slack webhook URL
@@ -262,6 +263,7 @@ use Monolog\Logger;
  *   - [include_extra]: bool, defaults to false
  *   - [level]: level name or int value, defaults to DEBUG
  *   - [bubble]: bool, defaults to true
+ *   - [exclude_fields]: array, defaults to empty array
  *
  * - slackbot:
  *   - team: slack team slug
@@ -474,6 +476,7 @@ class Configuration implements ConfigurationInterface
                             ->scalarNode('use_attachment')->defaultTrue()->end() // slack & slackwebhook
                             ->scalarNode('use_short_attachment')->defaultFalse()->end() // slack & slackwebhook
                             ->scalarNode('include_extra')->defaultFalse()->end() // slack & slackwebhook
+                            ->variableNode('exclude_fields')->defaultValue([])->end() // slack & slackwebhook
                             ->scalarNode('icon_emoji')->defaultNull()->end() // slack & slackwebhook
                             ->scalarNode('webhook_url')->end() // slackwebhook
                             ->scalarNode('team')->end() // slackbot
