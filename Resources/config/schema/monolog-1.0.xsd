@@ -11,6 +11,7 @@
         <xsd:choice minOccurs="0" maxOccurs="unbounded">
             <xsd:element name="handler" type="handler" />
             <xsd:element name="channel" type="xsd:string" />
+            <xsd:element name="handler-default-channels" type="channels" minOccurs="0" maxOccurs="1" />
         </xsd:choice>
     </xsd:complexType>
 
@@ -92,6 +93,7 @@
         <xsd:attribute name="webhook-url" type="xsd:string" />
         <xsd:attribute name="slack-team" type="xsd:string" />
         <xsd:attribute name="region" type="xsd:string" />
+        <xsd:attribute name="use-default-channels" type="xsd:boolean" />
     </xsd:complexType>
 
     <xsd:simpleType name="level">

@@ -145,6 +145,61 @@ abstract class FixtureMonologExtensionTest extends DependencyInjectionTest
         );
     }
 
+    public function testHandlersWithDefaultChannels()
+    {
+        $container = $this->getContainer('handlers_with_default_channels');
+
+        $this->assertFalse($container->hasParameter('monolog.handler_default_channels'));
+
+        $this->assertEquals(
+            [
+                'monolog.handler.one' => ['type' => 'inclusive', 'elements' => ['foo']],
+                'monolog.handler.two' => ['type' => 'exclusive', 'elements' => ['bar', 'baz']],
+                'monolog.handler.three' => ['type' => 'exclusive', 'elements' => ['bar', 'baz', 'foo']],
+                'monolog.handler.four' => ['type' => 'exclusive', 'elements' => ['foo', 'bar']],
+                'monolog.handler.five' => null,
+                'monolog.handler.six' => ['type' => 'exclusive', 'elements' => ['foo', 'bar']],
+            ],
+            $container->getParameter('monolog.handlers_to_channels')
+        );
+
+        $this->assertTrue($container->hasDefinition('monolog.logger'));
+        $this->assertTrue($container->hasDefinition('monolog.logger.foo'));
+        $this->assertTrue($container->hasDefinition('monolog.logger.bar'));
+        $this->assertTrue($container->hasDefinition('monolog.logger.baz'));
+        $this->assertTrue($container->hasDefinition('monolog.handler.one'));
+        $this->assertTrue($container->hasDefinition('monolog.handler.two'));
+        $this->assertTrue($container->hasDefinition('monolog.handler.three'));
+        $this->assertTrue($container->hasDefinition('monolog.handler.four'));
+        $this->assertTrue($container->hasDefinition('monolog.handler.five'));
+        $this->assertTrue($container->hasDefinition('monolog.handler.six'));
+
+        $logger = $container->getDefinition('monolog.logger');
+        $this->assertCount(6, $logger->getMethodCalls());
+        $this->assertDICDefinitionMethodCallAt(5, $logger, 'pushHandler', [new Reference('monolog.handler.two')]);
+        $this->assertDICDefinitionMethodCallAt(4, $logger, 'pushHandler', [new Reference('monolog.handler.three')]);
+        $this->assertDICDefinitionMethodCallAt(3, $logger, 'pushHandler', [new Reference('monolog.handler.four')]);
+        $this->assertDICDefinitionMethodCallAt(2, $logger, 'pushHandler', [new Reference('monolog.handler.five')]);
+        $this->assertDICDefinitionMethodCallAt(1, $logger, 'pushHandler', [new Reference('monolog.handler.six')]);
+        $this->assertDICDefinitionMethodCallAt(0, $logger, 'useMicrosecondTimestamps', ['%monolog.use_microseconds%']);
+
+        $logger = $container->getDefinition('monolog.logger.foo');
+        $this->assertCount(3, $logger->getMethodCalls());
+        $this->assertDICDefinitionMethodCallAt(2, $logger, 'pushHandler', [new Reference('monolog.handler.one')]);
+        $this->assertDICDefinitionMethodCallAt(1, $logger, 'pushHandler', [new Reference('monolog.handler.two')]);
+        $this->assertDICDefinitionMethodCallAt(0, $logger, 'pushHandler', [new Reference('monolog.handler.five')]);
+
+        $logger = $container->getDefinition('monolog.logger.bar');
+        $this->assertCount(1, $logger->getMethodCalls());
+        $this->assertDICDefinitionMethodCallAt(0, $logger, 'pushHandler', [new Reference('monolog.handler.five')]);
+
+        $logger = $container->getDefinition('monolog.logger.baz');
+        $this->assertCount(3, $logger->getMethodCalls());
+        $this->assertDICDefinitionMethodCallAt(2, $logger, 'pushHandler', [new Reference('monolog.handler.four')]);
+        $this->assertDICDefinitionMethodCallAt(1, $logger, 'pushHandler', [new Reference('monolog.handler.five')]);
+        $this->assertDICDefinitionMethodCallAt(0, $logger, 'pushHandler', [new Reference('monolog.handler.six')]);
+    }
+
     /** @group legacy */
     public function testSingleEmailRecipient()
     {

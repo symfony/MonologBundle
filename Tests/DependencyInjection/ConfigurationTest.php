@@ -323,6 +323,31 @@ class ConfigurationTest extends TestCase
         $this->assertEquals('B', $config['handlers']['foo']['channels']['elements'][1]);
     }
 
+    public function testWithUseDefaultChannels()
+    {
+        $configs = [
+            [
+                'handlers' => [
+                    'foo' => [
+                        'type' => 'stream',
+                        'path' => '/foo',
+                        'use_default_channels' => true,
+                    ],
+                    'bar' => [
+                        'type' => 'stream',
+                        'path' => '/bar',
+                        'use_default_channels' => false,
+                    ],
+                ],
+            ],
+        ];
+
+        $config = $this->process($configs);
+
+        $this->assertTrue($config['handlers']['foo']['use_default_channels']);
+        $this->assertFalse($config['handlers']['bar']['use_default_channels']);
+    }
+
     public function testWithFilePermission()
     {
         $configs = [
@@ -546,6 +571,28 @@ class ConfigurationTest extends TestCase
             ['process_psr_3_messages' => ['enabled' => false, 'remove_used_context_fields' => true]],
             ['enabled' => false, 'remove_used_context_fields' => true],
         ];
+    }
+
+    /**
+     * @dataProvider provideHandlerDefaultChannels
+     */
+    public function testHandlerDefaultChannels($configuration, ?array $processedConfiguration)
+    {
+        $config = $this->process([['handler_default_channels' => $configuration]]);
+
+        $this->assertEquals($processedConfiguration, $config['handler_default_channels']);
+    }
+
+    public static function provideHandlerDefaultChannels(): iterable
+    {
+        yield 'None' => [null, null];
+        yield 'Empty array' => [[], null];
+        yield 'As string' => ['!foo', ['type' => 'exclusive', 'elements' => ['foo']]];
+        yield 'As array' => [['foo', 'bar'], ['type' => 'inclusive', 'elements' => ['foo', 'bar']]];
+        yield 'With elements key' => [['elements' => ['!foo', '!bar']], ['type' => 'exclusive', 'elements' => ['foo', 'bar']]];
+        yield 'With type key' => [['type' => 'exclusive', 'elements' => ['!foo']], ['type' => 'exclusive', 'elements' => ['foo']]];
+        yield 'XML' => [['channel' => ['foo', 'bar']], ['type' => 'inclusive', 'elements' => ['foo', 'bar']]];
+        yield 'XML with type' => [['type' => 'exclusive', 'channel' => ['!foo']], ['type' => 'exclusive', 'elements' => ['foo']]];
     }
 
     /**

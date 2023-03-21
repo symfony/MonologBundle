@@ -1,0 +1,40 @@
+<?xml version="1.0" ?>
+
+<container xmlns="http://symfony.com/schema/dic/services"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:monolog="http://symfony.com/schema/dic/monolog"
+           xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd
+                        http://symfony.com/schema/dic/monolog http://symfony.com/schema/dic/monolog/monolog-1.0.xsd">
+
+    <monolog:config>
+        <monolog:channel>foo</monolog:channel>
+        <monolog:channel>bar</monolog:channel>
+        <monolog:channel>baz</monolog:channel>
+
+        <monolog:handler-default-channels>
+            <monolog:channel>!foo</monolog:channel>
+            <monolog:channel>!bar</monolog:channel>
+        </monolog:handler-default-channels>
+
+        <monolog:handler name="one" type="stream" use-default-channels="true">
+            <monolog:channels>
+                <monolog:channel>foo</monolog:channel>
+            </monolog:channels>
+        </monolog:handler>
+        <monolog:handler name="two" type="stream" use-default-channels="false">
+            <monolog:channels>
+                <monolog:channel>!bar</monolog:channel>
+                <monolog:channel>!baz</monolog:channel>
+            </monolog:channels>
+        </monolog:handler>
+        <monolog:handler name="three" type="stream" use-default-channels="true">
+            <monolog:channels>
+                <monolog:channel>!bar</monolog:channel>
+                <monolog:channel>!baz</monolog:channel>
+            </monolog:channels>
+        </monolog:handler>
+        <monolog:handler name="four" type="stream" use-default-channels="true" />
+        <monolog:handler name="five" type="stream" use-default-channels="false" />
+        <monolog:handler name="six" type="stream" />
+    </monolog:config>
+</container>
