@@ -13,8 +13,8 @@ namespace Symfony\Bundle\MonologBundle\DependencyInjection\Compiler;
 
 use Symfony\Component\DependencyInjection\ChildDefinition;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
+use Symfony\Component\DependencyInjection\Compiler\PriorityTaggedServiceTrait;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Reference;
 
 /**
  * Registers processors in Monolog loggers or handlers.
@@ -25,71 +25,50 @@ use Symfony\Component\DependencyInjection\Reference;
  */
 class AddProcessorsPass implements CompilerPassInterface
 {
+    use PriorityTaggedServiceTrait;
+
     public function process(ContainerBuilder $container)
     {
         if (!$container->hasDefinition('monolog.logger')) {
             return;
         }
 
-        $processors = [];
+        foreach (array_reverse($this->findAndSortTaggedServices('monolog.processor', $container)) as $reference) {
+            $tags = $container->getDefinition((string) $reference)->getTag('monolog.processor');
 
-        foreach ($container->findTaggedServiceIds('monolog.processor') as $id => $tags) {
             foreach ($tags as $tag) {
-                if (!isset($tag['priority'])) {
-                    $tag['priority'] = 0;
+                if (!empty($tag['channel']) && !empty($tag['handler'])) {
+                    throw new \InvalidArgumentException(\sprintf('you cannot specify both the "handler" and "channel" attributes for the "monolog.processor" tag on service "%s"', $reference));
                 }
 
-                $processors[] = [
-                    'id' => $id,
-                    'tag' => $tag,
-                ];
-            }
-        }
-
-        // Sort by priority so that higher-prio processors are added last.
-        // The effect is the monolog will call the higher-prio processors first
-        usort(
-            $processors,
-            function (array $left, array $right) {
-                return $left['tag']['priority'] <=> $right['tag']['priority'];
-            }
-        );
-
-        foreach ($processors as $processor) {
-            $tag = $processor['tag'];
-            $id = $processor['id'];
-
-            if (!empty($tag['channel']) && !empty($tag['handler'])) {
-                throw new \InvalidArgumentException(sprintf('you cannot specify both the "handler" and "channel" attributes for the "monolog.processor" tag on service "%s"', $id));
-            }
-
-            if (!empty($tag['handler'])) {
-                $definition = $container->findDefinition(sprintf('monolog.handler.%s', $tag['handler']));
-                $parentDef = $definition;
-                while (!$parentDef->getClass() && $parentDef instanceof ChildDefinition) {
-                    $parentDef = $container->findDefinition($parentDef->getParent());
-                }
-                $class = $container->getParameterBag()->resolveValue($parentDef->getClass());
-                if (!method_exists($class, 'pushProcessor')) {
-                    throw new \InvalidArgumentException(sprintf('The "%s" handler does not accept processors', $tag['handler']));
-                }
-            } elseif (!empty($tag['channel'])) {
-                if ('app' === $tag['channel']) {
-                    $definition = $container->getDefinition('monolog.logger');
+                if (!empty($tag['handler'])) {
+                    $definition = $container->findDefinition(\sprintf('monolog.handler.%s', $tag['handler']));
+                    $parentDef = $definition;
+                    while (!$parentDef->getClass() && $parentDef instanceof ChildDefinition) {
+                        $parentDef = $container->findDefinition($parentDef->getParent());
+                    }
+                    $class = $container->getParameterBag()->resolveValue($parentDef->getClass());
+                    if (!method_exists($class, 'pushProcessor')) {
+                        throw new \InvalidArgumentException(\sprintf('The "%s" handler does not accept processors', $tag['handler']));
+                    }
+                } elseif (!empty($tag['channel'])) {
+                    if ('app' === $tag['channel']) {
+                        $definition = $container->getDefinition('monolog.logger');
+                    } else {
+                        $definition = $container->getDefinition(\sprintf('monolog.logger.%s', $tag['channel']));
+                    }
                 } else {
-                    $definition = $container->getDefinition(sprintf('monolog.logger.%s', $tag['channel']));
+                    $definition = $container->getDefinition('monolog.logger_prototype');
                 }
-            } else {
-                $definition = $container->getDefinition('monolog.logger_prototype');
-            }
 
-            if (!empty($tag['method'])) {
-                $processor = [new Reference($id), $tag['method']];
-            } else {
-                // If no method is defined, fallback to use __invoke
-                $processor = new Reference($id);
+                if (!empty($tag['method'])) {
+                    $processor = [$reference, $tag['method']];
+                } else {
+                    // If no method is defined, fallback to use __invoke
+                    $processor = $reference;
+                }
+                $definition->addMethodCall('pushProcessor', [$processor]);
             }
-            $definition->addMethodCall('pushProcessor', [$processor]);
         }
     }
 }
