@@ -33,6 +33,7 @@ class AddProcessorsPass implements CompilerPassInterface
             return;
         }
 
+        // array_reverse is used because ProcessableHandlerTrait::pushProcessor prepends processors to the beginning of the stack
         foreach (array_reverse($this->findAndSortTaggedServices('monolog.processor', $container)) as $reference) {
             $tags = $container->getDefinition((string) $reference)->getTag('monolog.processor');
 
