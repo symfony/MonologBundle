@@ -76,6 +76,7 @@ class MonologExtension extends Extension
                 $handlers[$handler['priority']][] = [
                     'id' => $this->buildHandler($container, $name, $handler),
                     'channels' => empty($handler['channels']) ? null : $handler['channels'],
+                    'use_default_channels' => $handler['use_default_channels'],
                 ];
             }
 
@@ -92,10 +93,19 @@ class MonologExtension extends Extension
                 }
             }
 
+            $defaultChannels = $config['handler_default_channels'] ?? null;
             $handlersToChannels = [];
             foreach ($sortedHandlers as $handler) {
                 if (!\in_array($handler['id'], $this->nestedHandlers)) {
-                    $handlersToChannels[$handler['id']] = $handler['channels'];
+                    $channels = $handler['channels'];
+                    if (null !== $defaultChannels && $handler['use_default_channels']) {
+                        if (null === $channels) {
+                            $channels = $defaultChannels;
+                        } elseif ($channels['type'] === $defaultChannels['type']) {
+                            $channels['elements'] = array_unique(array_merge($channels['elements'], $defaultChannels['elements']));
+                        }
+                    }
+                    $handlersToChannels[$handler['id']] = $channels;
                 }
             }
             $container->setParameter('monolog.handlers_to_channels', $handlersToChannels);

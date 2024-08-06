@@ -1,0 +1,24 @@
+monolog:
+    channels: [ 'foo', 'bar', 'baz' ]
+    handler_default_channels: [ '!foo', '!bar' ]
+    handlers:
+        one:
+            type: stream
+            use_default_channels: true
+            channels: foo
+        two:
+            type: stream
+            use_default_channels: false
+            channels: [ '!bar', '!baz' ]
+        three:
+            type: stream
+            use_default_channels: true
+            channels: [ '!bar', '!baz' ]
+        four:
+            type: stream
+            use_default_channels: true
+        five:
+            type: stream
+            use_default_channels: false
+        six:
+            type: stream
