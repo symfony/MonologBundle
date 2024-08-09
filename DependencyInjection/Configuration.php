@@ -236,6 +236,9 @@ use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
  *   - hub_id: Sentry hub custom service id (optional)
  *   - [fill_extra_context]: bool, defaults to false
  *
+ * - sentry_breadcrumb:
+ *   - sentry_handler: the sentry handler's name
+ *
  * - newrelic:
  *   - [level]: level name or int value, defaults to DEBUG
  *   - [bubble]: bool, defaults to true
@@ -534,7 +537,7 @@ class Configuration implements ConfigurationInterface
                 ->scalarNode('max_level')->defaultValue('EMERGENCY')->end() // filter
                 ->scalarNode('buffer_size')->defaultValue(0)->end() // fingers_crossed and buffer
                 ->booleanNode('flush_on_overflow')->defaultFalse()->end() // buffer
-                ->scalarNode('handler')->end() // fingers_crossed and buffer
+                ->scalarNode('handler')->end() // fingers_crossed, buffer, filter, deduplication, sampling
                 ->scalarNode('url')->end() // cube
                 ->scalarNode('exchange')->end() // amqp
                 ->scalarNode('exchange_name')->defaultValue('log')->end() // amqp
@@ -584,6 +587,7 @@ class Configuration implements ConfigurationInterface
                 ->booleanNode('persistent')->end() // socket_handler
                 ->scalarNode('dsn')->end() // raven_handler, sentry_handler
                 ->scalarNode('hub_id')->defaultNull()->end() // sentry_handler
+                ->scalarNode('sentry_handler')->defaultNull()->end() // sentry_breadcrumb
                 ->scalarNode('client_id')->defaultNull()->end() // raven_handler, sentry_handler
                 ->scalarNode('auto_log_stacks')->defaultFalse()->end() // raven_handler
                 ->scalarNode('release')->defaultNull()->end() // raven_handler, sentry_handler
@@ -658,8 +662,8 @@ class Configuration implements ConfigurationInterface
                 ->thenInvalid('Service handlers can not have a formatter configured in the bundle, you must reconfigure the service itself instead')
             ->end()
             ->validate()
-                ->ifTrue(function ($v) { return ('fingers_crossed' === $v['type'] || 'buffer' === $v['type'] || 'filter' === $v['type'] || 'sampling' === $v['type']) && empty($v['handler']); })
-                ->thenInvalid('The handler has to be specified to use a FingersCrossedHandler or BufferHandler or FilterHandler or SamplingHandler')
+                ->ifTrue(function ($v) { return ('fingers_crossed' === $v['type'] || 'buffer' === $v['type'] || 'filter' === $v['type'] || 'deduplication' === $v['type'] || 'sampling' === $v['type']) && empty($v['handler']); })
+                ->thenInvalid('The handler has to be specified to use a FingersCrossedHandler, BufferHandler, FilterHandler, DeduplicationHandler or SamplingHandler')
             ->end()
             ->validate()
                 ->ifTrue(function ($v) { return 'fingers_crossed' === $v['type'] && !empty($v['excluded_404s']) && !empty($v['activation_strategy']); })
@@ -724,6 +728,10 @@ class Configuration implements ConfigurationInterface
             ->validate()
                 ->ifTrue(function ($v) { return 'sentry' === $v['type'] && null !== $v['hub_id'] && null !== $v['client_id']; })
                 ->thenInvalid('You can not use both a hub_id and a client_id in a Sentry handler')
+            ->end()
+            ->validate()
+                ->ifTrue(function ($v) { return 'sentry_breadcrumb' === $v['type'] && empty($v['sentry_handler']); })
+                ->thenInvalid('The sentry_handler has to be specified to use a Sentry BreadcrumbHandler')
             ->end()
             ->validate()
                 ->ifTrue(function ($v) { return 'hipchat' === $v['type'] && (empty($v['token']) || empty($v['room'])); })
