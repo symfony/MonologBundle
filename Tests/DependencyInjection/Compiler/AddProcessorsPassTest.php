@@ -12,7 +12,6 @@
 namespace Symfony\Bundle\MonologBundle\Tests\DependencyInjection\Compiler;
 
 use Monolog\Handler\NullHandler;
-use Monolog\Logger;
 use PHPUnit\Framework\TestCase;
 use Symfony\Bridge\Monolog\Handler\ConsoleHandler;
 use Symfony\Bundle\MonologBundle\DependencyInjection\Compiler\AddProcessorsPass;
@@ -53,16 +52,9 @@ class AddProcessorsPassTest extends TestCase
         $container->getCompilerPassConfig()->setRemovingPasses([]);
         $container->addCompilerPass(new AddProcessorsPass());
 
-        if (Logger::API < 2) {
-            $container->compile();
-            $service = $container->getDefinition('monolog.handler.test3');
-            $calls = $service->getMethodCalls();
-            $this->assertCount(1, $calls);
-        } else {
-            $this->expectException(\InvalidArgumentException::class);
-            $this->expectExceptionMessage('The "test3" handler does not accept processors');
-            $container->compile();
-        }
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('The "test3" handler does not accept processors');
+        $container->compile();
     }
 
     protected function getContainer()

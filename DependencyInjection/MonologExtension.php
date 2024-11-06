@@ -230,14 +230,6 @@ class MonologExtension extends Extension
                     $publisher = new Definition('Gelf\Publisher', []);
                     $publisher->addMethodCall('addTransport', [$transport]);
                     $publisher->setPublic(false);
-                } elseif (class_exists('Gelf\MessagePublisher')) {
-                    $publisher = new Definition('Gelf\MessagePublisher', [
-                        $handler['publisher']['hostname'],
-                        $handler['publisher']['port'],
-                        $handler['publisher']['chunk_size'],
-                    ]);
-
-                    $publisher->setPublic(false);
                 } else {
                     throw new \RuntimeException('The gelf handler requires the graylog2/gelf-php package to be installed');
                 }
@@ -632,27 +624,6 @@ class MonologExtension extends Extension
                 }
                 break;
 
-            case 'hipchat':
-                $definition->setArguments([
-                    $handler['token'],
-                    $handler['room'],
-                    $handler['nickname'],
-                    $handler['notify'],
-                    $handler['level'],
-                    $handler['bubble'],
-                    $handler['use_ssl'],
-                    $handler['message_format'],
-                    !empty($handler['host']) ? $handler['host'] : 'api.hipchat.com',
-                    !empty($handler['api_version']) ? $handler['api_version'] : 'v1',
-                ]);
-                if (isset($handler['timeout'])) {
-                    $definition->addMethodCall('setTimeout', [$handler['timeout']]);
-                }
-                if (isset($handler['connection_timeout'])) {
-                    $definition->addMethodCall('setConnectionTimeout', [$handler['connection_timeout']]);
-                }
-                break;
-
             case 'slack':
                 $definition->setArguments([
                     $handler['token'],
@@ -682,16 +653,6 @@ class MonologExtension extends Extension
                     $handler['icon_emoji'],
                     $handler['use_short_attachment'],
                     $handler['include_extra'],
-                    $handler['level'],
-                    $handler['bubble'],
-                ]);
-                break;
-
-            case 'slackbot':
-                $definition->setArguments([
-                    $handler['team'],
-                    $handler['token'],
-                    urlencode($handler['channel']),
                     $handler['level'],
                     $handler['bubble'],
                 ]);
@@ -771,31 +732,6 @@ class MonologExtension extends Extension
                     $handler['bubble'],
                     $handler['fill_extra_context'],
                 ]);
-                break;
-
-            case 'raven':
-                if (null !== $handler['client_id']) {
-                    $clientId = $handler['client_id'];
-                } else {
-                    $client = new Definition('Raven_Client', [
-                        $handler['dsn'],
-                        [
-                            'auto_log_stacks' => $handler['auto_log_stacks'],
-                            'environment' => $handler['environment'],
-                        ],
-                    ]);
-                    $client->setPublic(false);
-                    $clientId = 'monolog.raven.client.'.sha1($handler['dsn']);
-                    $container->setDefinition($clientId, $client);
-                }
-                $definition->setArguments([
-                    new Reference($clientId),
-                    $handler['level'],
-                    $handler['bubble'],
-                ]);
-                if (!empty($handler['release'])) {
-                    $definition->addMethodCall('setRelease', [$handler['release']]);
-                }
                 break;
 
             case 'loggly':
@@ -975,13 +911,10 @@ class MonologExtension extends Extension
             'symfony_mailer' => 'Symfony\Bridge\Monolog\Handler\MailerHandler',
             'socket' => 'Monolog\Handler\SocketHandler',
             'pushover' => 'Monolog\Handler\PushoverHandler',
-            'raven' => 'Monolog\Handler\RavenHandler',
             'sentry' => 'Sentry\Monolog\Handler',
             'newrelic' => 'Monolog\Handler\NewRelicHandler',
-            'hipchat' => 'Monolog\Handler\HipChatHandler',
             'slack' => 'Monolog\Handler\SlackHandler',
             'slackwebhook' => 'Monolog\Handler\SlackWebhookHandler',
-            'slackbot' => 'Monolog\Handler\SlackbotHandler',
             'cube' => 'Monolog\Handler\CubeHandler',
             'amqp' => 'Monolog\Handler\AmqpHandler',
             'error_log' => 'Monolog\Handler\ErrorLogHandler',
@@ -991,16 +924,12 @@ class MonologExtension extends Extension
             'fingers_crossed' => 'Monolog\Handler\FingersCrossedHandler',
             'filter' => 'Monolog\Handler\FilterHandler',
             'mongo' => 'Monolog\Handler\MongoDBHandler',
-            'elasticsearch' => 'Monolog\Handler\ElasticSearchHandler',
             'telegram' => 'Monolog\Handler\TelegramBotHandler',
             'server_log' => 'Symfony\Bridge\Monolog\Handler\ServerLogHandler',
             'redis' => 'Monolog\Handler\RedisHandler',
             'predis' => 'Monolog\Handler\RedisHandler',
             'insightops' => 'Monolog\Handler\InsightOpsHandler',
             'sampling' => 'Monolog\Handler\SamplingHandler',
-        ];
-
-        $v2HandlerTypesAdded = [
             'elastica' => 'Monolog\Handler\ElasticaHandler',
             'elasticsearch' => 'Monolog\Handler\ElasticaHandler',
             'elastic_search' => 'Monolog\Handler\ElasticsearchHandler',
@@ -1008,22 +937,9 @@ class MonologExtension extends Extension
             'noop' => 'Monolog\Handler\NoopHandler',
         ];
 
-        $v2HandlerTypesRemoved = [
-            'hipchat',
-            'raven',
-            'slackbot',
-        ];
-
         $v3HandlerTypesRemoved = [
             'swift_mailer',
         ];
-
-        if (Logger::API >= 2) {
-            $typeToClassMapping = array_merge($typeToClassMapping, $v2HandlerTypesAdded);
-            foreach ($v2HandlerTypesRemoved as $v2HandlerTypeRemoved) {
-                unset($typeToClassMapping[$v2HandlerTypeRemoved]);
-            }
-        }
 
         if (Logger::API >= 3) {
             foreach ($v3HandlerTypesRemoved as $v3HandlerTypeRemoved) {
@@ -1032,14 +948,6 @@ class MonologExtension extends Extension
         }
 
         if (!isset($typeToClassMapping[$handlerType])) {
-            if (Logger::API === 1 && \array_key_exists($handlerType, $v2HandlerTypesAdded)) {
-                throw new \InvalidArgumentException(\sprintf('"%s" was added in Monolog v2, please upgrade if you wish to use it.', $handlerType));
-            }
-
-            if (Logger::API >= 2 && \array_key_exists($handlerType, $v2HandlerTypesRemoved)) {
-                throw new \InvalidArgumentException(\sprintf('"%s" was removed in Monolog v2.', $handlerType));
-            }
-
             if (Logger::API >= 3 && \array_key_exists($handlerType, $v3HandlerTypesRemoved)) {
                 throw new \InvalidArgumentException(\sprintf('"%s" was removed in Monolog v3.', $handlerType));
             }

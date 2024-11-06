@@ -57,9 +57,6 @@
         <xsd:attribute name="from-email" type="xsd:string" />
         <xsd:attribute name="to-email" type="xsd:string" />
         <xsd:attribute name="subject" type="xsd:string" />
-        <xsd:attribute name="notify" type="xsd:boolean" />
-        <xsd:attribute name="room" type="xsd:string" />
-        <xsd:attribute name="nickname" type="xsd:string" />
         <xsd:attribute name="release" type="xsd:string" />
         <xsd:attribute name="timeout" type="xsd:string" />
         <xsd:attribute name="time" type="xsd:integer" />
@@ -86,11 +83,9 @@
         <xsd:attribute name="document_type" type="xsd:string" />
         <xsd:attribute name="document-type" type="xsd:string" />
         <xsd:attribute name="ignore-error" type="xsd:string" />
-        <xsd:attribute name="api_version" type="xsd:string" />
         <xsd:attribute name="include-stacktraces" type="xsd:string" />
         <xsd:attribute name="content-type" type="xsd:string" />
         <xsd:attribute name="webhook-url" type="xsd:string" />
-        <xsd:attribute name="slack-team" type="xsd:string" />
         <xsd:attribute name="region" type="xsd:string" />
     </xsd:complexType>
 

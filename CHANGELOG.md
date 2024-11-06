@@ -1,5 +1,7 @@
 ## Unreleased
 
+* Drop support for Monolog 1
+
 ## 3.10.0 (2023-11-06)
 
 * Add configuration support for SamplingHandler

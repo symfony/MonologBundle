@@ -223,37 +223,21 @@ use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
  *   - [timeout]: float
  *   - [connection_timeout]: float
  *
- * - raven / sentry:
+ * - sentry:
  *   - dsn: connection string
  *   - client_id: Raven client custom service id (optional)
+ *   - hub_id: Sentry hub custom service id (optional)
  *   - [release]: release number of the application that will be attached to logs, defaults to null
  *   - [level]: level name or int value, defaults to DEBUG
  *   - [bubble]: bool, defaults to true
  *   - [auto_log_stacks]: bool, defaults to false
  *   - [environment]: string, default to null (no env specified)
- *
- * - sentry:
- *   - hub_id: Sentry hub custom service id (optional)
  *   - [fill_extra_context]: bool, defaults to false
  *
  * - newrelic:
  *   - [level]: level name or int value, defaults to DEBUG
  *   - [bubble]: bool, defaults to true
  *   - [app_name]: new relic app name, default null
- *
- * - hipchat:
- *   - token: hipchat api token
- *   - room: room id or name
- *   - [notify]: defaults to false
- *   - [nickname]: defaults to Monolog
- *   - [level]: level name or int value, defaults to DEBUG
- *   - [bubble]: bool, defaults to true
- *   - [use_ssl]: bool, defaults to true
- *   - [message_format]: text or html, defaults to text
- *   - [host]: defaults to "api.hipchat.com"
- *   - [api_version]: defaults to "v1"
- *   - [timeout]: float
- *   - [connection_timeout]: float
  *
  * - slack:
  *   - token: slack api token
@@ -276,13 +260,6 @@ use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
  *   - [use_attachment]: bool, defaults to true
  *   - [use_short_attachment]: bool, defaults to false
  *   - [include_extra]: bool, defaults to false
- *   - [level]: level name or int value, defaults to DEBUG
- *   - [bubble]: bool, defaults to true
- *
- * - slackbot:
- *   - team: slack team slug
- *   - token: slackbot token
- *   - channel: channel name (with starting #)
  *   - [level]: level name or int value, defaults to DEBUG
  *   - [bubble]: bool, defaults to true
  *
@@ -538,23 +515,17 @@ class Configuration implements ConfigurationInterface
                 ->scalarNode('url')->end() // cube
                 ->scalarNode('exchange')->end() // amqp
                 ->scalarNode('exchange_name')->defaultValue('log')->end() // amqp
-                ->scalarNode('room')->end() // hipchat
-                ->scalarNode('message_format')->defaultValue('text')->end() // hipchat
-                ->scalarNode('api_version')->defaultNull()->end() // hipchat
-                ->scalarNode('channel')->defaultNull()->end() // slack & slackwebhook & slackbot & telegram
+                ->scalarNode('channel')->defaultNull()->end() // slack & slackwebhook & telegram
                 ->scalarNode('bot_name')->defaultValue('Monolog')->end() // slack & slackwebhook
                 ->scalarNode('use_attachment')->defaultTrue()->end() // slack & slackwebhook
                 ->scalarNode('use_short_attachment')->defaultFalse()->end() // slack & slackwebhook
                 ->scalarNode('include_extra')->defaultFalse()->end() // slack & slackwebhook
                 ->scalarNode('icon_emoji')->defaultNull()->end() // slack & slackwebhook
                 ->scalarNode('webhook_url')->end() // slackwebhook
-                ->scalarNode('team')->end() // slackbot
-                ->scalarNode('notify')->defaultFalse()->end() // hipchat
-                ->scalarNode('nickname')->defaultValue('Monolog')->end() // hipchat
-                ->scalarNode('token')->end() // pushover & hipchat & loggly & logentries & flowdock & rollbar & slack & slackbot & insightops & telegram
+                ->scalarNode('token')->end() // pushover & loggly & logentries & flowdock & rollbar & slack & insightops & telegram
                 ->scalarNode('region')->end() // insightops
                 ->scalarNode('source')->end() // flowdock
-                ->booleanNode('use_ssl')->defaultTrue()->end() // logentries & hipchat & insightops
+                ->booleanNode('use_ssl')->defaultTrue()->end() // logentries & insightops
                 ->variableNode('user') // pushover
                     ->validate()
                         ->ifTrue(function ($v) {
@@ -564,7 +535,7 @@ class Configuration implements ConfigurationInterface
                     ->end()
                 ->end()
                 ->scalarNode('title')->defaultNull()->end() // pushover
-                ->scalarNode('host')->defaultNull()->end() // syslogudp & hipchat
+                ->scalarNode('host')->defaultNull()->end() // syslogudp
                 ->scalarNode('port')->defaultValue(514)->end() // syslogudp
                 ->arrayNode('config')
                     ->canBeUnset()
@@ -576,18 +547,17 @@ class Configuration implements ConfigurationInterface
                     ->prototype('scalar')->end()
                 ->end()
                 ->scalarNode('connection_string')->end() // socket_handler
-                ->scalarNode('timeout')->end() // socket_handler, logentries, pushover, hipchat & slack
+                ->scalarNode('timeout')->end() // socket_handler, logentries, pushover & slack
                 ->scalarNode('time')->defaultValue(60)->end() // deduplication
                 ->scalarNode('deduplication_level')->defaultValue(Logger::ERROR)->end() // deduplication
                 ->scalarNode('store')->defaultNull()->end() // deduplication
-                ->scalarNode('connection_timeout')->end() // socket_handler, logentries, pushover, hipchat & slack
+                ->scalarNode('connection_timeout')->end() // socket_handler, logentries, pushover & slack
                 ->booleanNode('persistent')->end() // socket_handler
-                ->scalarNode('dsn')->end() // raven_handler, sentry_handler
+                ->scalarNode('dsn')->end() // sentry_handler
                 ->scalarNode('hub_id')->defaultNull()->end() // sentry_handler
-                ->scalarNode('client_id')->defaultNull()->end() // raven_handler, sentry_handler
-                ->scalarNode('auto_log_stacks')->defaultFalse()->end() // raven_handler
-                ->scalarNode('release')->defaultNull()->end() // raven_handler, sentry_handler
-                ->scalarNode('environment')->defaultNull()->end() // raven_handler, sentry_handler
+                ->scalarNode('client_id')->defaultNull()->end() // sentry_handler
+                ->scalarNode('release')->defaultNull()->end() // sentry_handler
+                ->scalarNode('environment')->defaultNull()->end() // sentry_handler
                 ->scalarNode('message_type')->defaultValue(0)->end() // error_log
                 ->scalarNode('parse_mode')->defaultNull()->end() // telegram
                 ->booleanNode('disable_webpage_preview')->defaultNull()->end() // telegram
@@ -714,10 +684,6 @@ class Configuration implements ConfigurationInterface
                 ->thenInvalid('The token and user have to be specified to use a PushoverHandler')
             ->end()
             ->validate()
-                ->ifTrue(function ($v) { return 'raven' === $v['type'] && !\array_key_exists('dsn', $v) && null === $v['client_id']; })
-                ->thenInvalid('The DSN has to be specified to use a RavenHandler')
-            ->end()
-            ->validate()
                 ->ifTrue(function ($v) { return 'sentry' === $v['type'] && !\array_key_exists('dsn', $v) && null === $v['hub_id'] && null === $v['client_id']; })
                 ->thenInvalid('The DSN has to be specified to use Sentry\'s handler')
             ->end()
@@ -726,28 +692,12 @@ class Configuration implements ConfigurationInterface
                 ->thenInvalid('You can not use both a hub_id and a client_id in a Sentry handler')
             ->end()
             ->validate()
-                ->ifTrue(function ($v) { return 'hipchat' === $v['type'] && (empty($v['token']) || empty($v['room'])); })
-                ->thenInvalid('The token and room have to be specified to use a HipChatHandler')
-            ->end()
-            ->validate()
-                ->ifTrue(function ($v) { return 'hipchat' === $v['type'] && !\in_array($v['message_format'], ['text', 'html']); })
-                ->thenInvalid('The message_format has to be "text" or "html" in a HipChatHandler')
-            ->end()
-            ->validate()
-                ->ifTrue(function ($v) { return 'hipchat' === $v['type'] && null !== $v['api_version'] && !\in_array($v['api_version'], ['v1', 'v2'], true); })
-                ->thenInvalid('The api_version has to be "v1" or "v2" in a HipChatHandler')
-            ->end()
-            ->validate()
                 ->ifTrue(function ($v) { return 'slack' === $v['type'] && (empty($v['token']) || empty($v['channel'])); })
                 ->thenInvalid('The token and channel have to be specified to use a SlackHandler')
             ->end()
             ->validate()
                 ->ifTrue(function ($v) { return 'slackwebhook' === $v['type'] && (empty($v['webhook_url'])); })
                 ->thenInvalid('The webhook_url have to be specified to use a SlackWebhookHandler')
-            ->end()
-            ->validate()
-                ->ifTrue(function ($v) { return 'slackbot' === $v['type'] && (empty($v['team']) || empty($v['token']) || empty($v['channel'])); })
-                ->thenInvalid('The team, token and channel have to be specified to use a SlackbotHandler')
             ->end()
             ->validate()
                 ->ifTrue(function ($v) { return 'cube' === $v['type'] && empty($v['url']); })

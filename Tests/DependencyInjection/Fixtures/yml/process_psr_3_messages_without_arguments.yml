@@ -1,6 +1,0 @@
-monolog:
-    handlers:
-        without_arguments:
-            type: stream
-            process_psr_3_messages:
-                enabled: true

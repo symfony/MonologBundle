@@ -15,7 +15,6 @@ use Monolog\Attribute\AsMonologProcessor;
 use Monolog\Attribute\WithMonologChannel;
 use Monolog\Handler\FingersCrossed\ErrorLevelActivationStrategy;
 use Monolog\Handler\RollbarHandler;
-use Monolog\Logger;
 use Monolog\Processor\UidProcessor;
 use Symfony\Bundle\MonologBundle\DependencyInjection\Compiler\LoggerChannelPass;
 use Symfony\Bundle\MonologBundle\DependencyInjection\MonologExtension;
@@ -287,88 +286,6 @@ class MonologExtensionTest extends DependencyInjectionTestCase
         $this->assertDICDefinitionMethodCallAt(3, $handler, 'setPersistent', [true]);
     }
 
-    public function testRavenHandlerWhenConfigurationIsWrong()
-    {
-        if (Logger::API !== 1) {
-            $this->markTestSkipped('Only valid on Monolog V1');
-
-            return;
-        }
-
-        try {
-            $this->getContainer([['handlers' => ['raven' => ['type' => 'raven']]]]);
-            $this->fail();
-        } catch (InvalidConfigurationException $e) {
-            $this->assertStringContainsString('DSN', $e->getMessage());
-        }
-    }
-
-    public function testRavenHandlerWhenADSNIsSpecified()
-    {
-        if (Logger::API !== 1) {
-            $this->markTestSkipped('Only valid on Monolog V1');
-
-            return;
-        }
-
-        $dsn = 'http://43f6017361224d098402974103bfc53d:a6a0538fc2934ba2bed32e08741b2cd3@marca.python.live.cheggnet.com:9000/1';
-
-        $container = $this->getContainer([['handlers' => ['raven' => [
-            'type' => 'raven', 'dsn' => $dsn,
-        ]]]]);
-        $this->assertTrue($container->hasDefinition('monolog.logger'));
-        $this->assertTrue($container->hasDefinition('monolog.handler.raven'));
-
-        $logger = $container->getDefinition('monolog.logger');
-        $this->assertDICDefinitionMethodCallAt(0, $logger, 'useMicrosecondTimestamps', ['%monolog.use_microseconds%']);
-        $this->assertDICDefinitionMethodCallAt(1, $logger, 'pushHandler', [new Reference('monolog.handler.raven')]);
-
-        $this->assertTrue($container->hasDefinition('monolog.raven.client.'.sha1($dsn)));
-
-        $handler = $container->getDefinition('monolog.handler.raven');
-        $this->assertDICDefinitionClass($handler, 'Monolog\Handler\RavenHandler');
-    }
-
-    public function testRavenHandlerWhenADSNAndAClientAreSpecified()
-    {
-        if (Logger::API !== 1) {
-            $this->markTestSkipped('Only valid on Monolog V1');
-
-            return;
-        }
-
-        $container = $this->getContainer([['handlers' => ['raven' => [
-            'type' => 'raven', 'dsn' => 'foobar', 'client_id' => 'raven.client',
-        ]]]], ['raven.client' => new Definition('Raven_Client')]);
-
-        $logger = $container->getDefinition('monolog.logger');
-        $this->assertDICDefinitionMethodCallAt(0, $logger, 'useMicrosecondTimestamps', ['%monolog.use_microseconds%']);
-        $this->assertDICDefinitionMethodCallAt(1, $logger, 'pushHandler', [new Reference('monolog.handler.raven')]);
-
-        $handler = $container->getDefinition('monolog.handler.raven');
-        $this->assertDICConstructorArguments($handler, [new Reference('raven.client'), 'DEBUG', true]);
-    }
-
-    public function testRavenHandlerWhenAClientIsSpecified()
-    {
-        if (Logger::API !== 1) {
-            $this->markTestSkipped('Only valid on Monolog V1');
-
-            return;
-        }
-
-        $container = $this->getContainer([['handlers' => ['raven' => [
-            'type' => 'raven', 'client_id' => 'raven.client',
-        ]]]], ['raven.client' => new Definition('Raven_Client')]);
-
-        $logger = $container->getDefinition('monolog.logger');
-        $this->assertDICDefinitionMethodCallAt(0, $logger, 'useMicrosecondTimestamps', ['%monolog.use_microseconds%']);
-        $this->assertDICDefinitionMethodCallAt(1, $logger, 'pushHandler', [new Reference('monolog.handler.raven')]);
-
-        $handler = $container->getDefinition('monolog.handler.raven');
-        $this->assertDICConstructorArguments($handler, [new Reference('raven.client'), 'DEBUG', true]);
-    }
-
     public function testSentryHandlerWhenConfigurationIsWrong()
     {
         try {
@@ -611,45 +528,24 @@ class MonologExtensionTest extends DependencyInjectionTestCase
     /**
      * @dataProvider v2RemovedDataProvider
      */
-    public function testV2Removed(array $handlerOptions)
+    public function testV2Removed(string $type)
     {
-        if (Logger::API === 1) {
-            $this->markTestSkipped('Not valid for V1');
-
-            return;
-        }
-
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage(\sprintf('There is no handler class defined for handler "%s".', $handlerOptions['type']));
+        $this->expectExceptionMessage(\sprintf('There is no handler class defined for handler "%s".', $type));
 
         $container = new ContainerBuilder();
         $loader = new MonologExtension();
 
-        $loader->load([['handlers' => ['main' => $handlerOptions]]], $container);
+        $loader->load([['handlers' => ['main' => ['type' => $type]]]], $container);
     }
 
     public static function v2RemovedDataProvider(): array
     {
         return [
-            [['type' => 'hipchat', 'token' => 'abc123', 'room' => 'foo']],
-            [['type' => 'raven', 'dsn' => 'foo']],
-            [['type' => 'slackbot', 'team' => 'foo', 'token' => 'test1234', 'channel' => 'bar']],
+            ['hipchat'],
+            ['raven'],
+            ['slackbot'],
         ];
-    }
-
-    public function testV2AddedOnV1()
-    {
-        if (Logger::API !== 1) {
-            $this->markTestSkipped('Only valid on Monolog V1');
-        }
-
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('"fallbackgroup" was added in Monolog v2, please upgrade if you wish to use it.');
-
-        $container = new ContainerBuilder();
-        $loader = new MonologExtension();
-
-        $loader->load([['handlers' => ['main' => ['type' => 'fallbackgroup']]]], $container);
     }
 
     /**
@@ -754,10 +650,6 @@ class MonologExtensionTest extends DependencyInjectionTestCase
      */
     public function testAsMonologProcessorAutoconfigurationRedeclareMethod(): void
     {
-        if (!class_exists(AsMonologProcessor::class, true)) {
-            $this->markTestSkipped('Monolog >= 2.3.6 is needed.');
-        }
-
         $this->expectException(\LogicException::class);
         $this->expectExceptionMessage('AsMonologProcessor attribute cannot declare a method on "Symfony\Bundle\MonologBundle\Tests\DependencyInjection\Fixtures\AsMonologProcessor\RedeclareMethodProcessor::__invoke()".');
 
