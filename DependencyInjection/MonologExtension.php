@@ -25,6 +25,7 @@ use Symfony\Bridge\Monolog\Processor\SwitchUserTokenProcessor;
 use Symfony\Bridge\Monolog\Processor\TokenProcessor;
 use Symfony\Bridge\Monolog\Processor\WebProcessor;
 use Symfony\Component\Config\FileLocator;
+use Symfony\Component\DependencyInjection\Argument\AbstractArgument;
 use Symfony\Component\DependencyInjection\Argument\BoundArgument;
 use Symfony\Component\DependencyInjection\ChildDefinition;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -46,6 +47,8 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 class MonologExtension extends Extension
 {
     private $nestedHandlers = [];
+
+    private $sentryBreadcrumbHandlers = [];
 
     private $swiftMailerHandlers = [];
 
@@ -77,6 +80,11 @@ class MonologExtension extends Extension
                     'id' => $this->buildHandler($container, $name, $handler),
                     'channels' => empty($handler['channels']) ? null : $handler['channels'],
                 ];
+            }
+
+            foreach ($this->sentryBreadcrumbHandlers as $sentryBreadcrumbHandlerId => $sentryHandlerId) {
+                $hubId = (string) $container->getDefinition($sentryHandlerId)->getArgument(0);
+                $container->getDefinition($sentryBreadcrumbHandlerId)->replaceArgument(0, new Reference($hubId));
             }
 
             $container->setParameter(
@@ -724,7 +732,7 @@ class MonologExtension extends Extension
 
             case 'sentry':
                 if (null !== $handler['hub_id']) {
-                    $hub = new Reference($handler['hub_id']);
+                    $hubId = $handler['hub_id'];
                 } else {
                     if (null !== $handler['client_id']) {
                         $clientId = $handler['client_id'];
@@ -755,21 +763,31 @@ class MonologExtension extends Extension
                         }
                     }
 
-                    $hub = new Definition(
+                    $hubId = \sprintf('monolog.handler.%s.hub', $name);
+                    $hub = $container->setDefinition($hubId, new Definition(
                         'Sentry\\State\\Hub',
                         [new Reference($clientId)]
-                    );
-                    $container->setDefinition(\sprintf('monolog.handler.%s.hub', $name), $hub);
+                    ));
 
                     // can't set the hub to the current hub, getting into a recursion otherwise...
                     // $hub->addMethodCall('setCurrent', array($hub));
                 }
 
                 $definition->setArguments([
-                    $hub,
+                    new Reference($hubId),
                     $handler['level'],
                     $handler['bubble'],
                     $handler['fill_extra_context'],
+                ]);
+                break;
+
+            case 'sentry_breadcrumb':
+                $this->sentryBreadcrumbHandlers[$handlerId] = $this->getHandlerId($handler['sentry_handler']);
+
+                $definition->setArguments([
+                    new AbstractArgument('Sentry hub id'),
+                    $handler['level'],
+                    $handler['bubble'],
                 ]);
                 break;
 
@@ -977,6 +995,7 @@ class MonologExtension extends Extension
             'pushover' => 'Monolog\Handler\PushoverHandler',
             'raven' => 'Monolog\Handler\RavenHandler',
             'sentry' => 'Sentry\Monolog\Handler',
+            'sentry_breadcrumb' => 'Sentry\Monolog\BreadcrumbHandler',
             'newrelic' => 'Monolog\Handler\NewRelicHandler',
             'hipchat' => 'Monolog\Handler\HipChatHandler',
             'slack' => 'Monolog\Handler\SlackHandler',
