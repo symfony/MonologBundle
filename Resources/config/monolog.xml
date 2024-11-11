@@ -29,6 +29,7 @@
         <service id="monolog.formatter.html" class="Monolog\Formatter\HtmlFormatter" public="false" />
         <service id="monolog.formatter.json" class="Monolog\Formatter\JsonFormatter" public="false" />
         <service id="monolog.formatter.line" class="Monolog\Formatter\LineFormatter" public="false" />
+        <service id="monolog.formatter.syslog" class="Monolog\Formatter\SyslogFormatter" public="false" />
         <service id="monolog.formatter.loggly" class="Monolog\Formatter\LogglyFormatter" public="false" />
         <service id="monolog.formatter.normalizer" class="Monolog\Formatter\NormalizerFormatter" public="false" />
         <service id="monolog.formatter.scalar" class="Monolog\Formatter\ScalarFormatter" public="false" />
