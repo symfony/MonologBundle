@@ -931,6 +931,8 @@ class MonologExtension extends Extension
             $definition->addTag('kernel.reset', ['method' => 'reset']);
         }
 
+        $definition->addTag('monolog.handler');
+
         $container->setDefinition($handlerId, $definition);
 
         return $handlerId;

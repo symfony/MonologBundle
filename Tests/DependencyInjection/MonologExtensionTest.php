@@ -86,6 +86,16 @@ class MonologExtensionTest extends DependencyInjectionTestCase
         $this->assertDICConstructorArguments($handler, ['/tmp/symfony.log', 'ERROR', false, 0666, false]);
     }
 
+    public function testTagsAllHandlersCreated()
+    {
+        $container = $this->getContainer([['handlers' => [
+            'custom' => ['type' => 'stream', 'path' => '/tmp/symfony.log', 'bubble' => false, 'level' => 'ERROR', 'file_permission' => '0666'],
+            'nested' => ['type' => 'stream', 'path' => '/tmp/symfony.log', 'bubble' => false, 'level' => 'ERROR', 'file_permission' => '0666', 'nested' => true]
+        ]]]);
+        $taggedHandlers = $container->findTaggedServiceIds('monolog.handler');
+        $this->assertCount(2, $taggedHandlers);
+    }
+
     public function testLoadWithServiceHandler()
     {
         $container = $this->getContainer(
