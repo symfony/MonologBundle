@@ -14,6 +14,7 @@ namespace Symfony\Bundle\MonologBundle\Tests\DependencyInjection\Compiler;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\MonologBundle\DependencyInjection\Compiler\LoggerChannelPass;
+use Symfony\Bundle\MonologBundle\DependencyInjection\MonologExtension;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
@@ -231,6 +232,48 @@ class LoggerChannelPassTest extends TestCase
         $container->getCompilerPassConfig()->setRemovingPasses([]);
 
         return $container;
+    }
+
+    public function testEnabledHandler()
+    {
+        $container = new ContainerBuilder();
+        $loader = new MonologExtension();
+
+        $config = [
+            'handlers' => [
+                'main' => [
+                    'enabled' => true,
+                    'type' => 'stream',
+                    'path' => '%kernel.logs_dir%/%kernel.environment%.log',
+                    'level' => 'debug',
+                ],
+            ],
+        ];
+
+        $loader->load([$config], $container);
+
+        $this->assertTrue($container->hasDefinition('monolog.handler.main'));
+    }
+
+    public function testDisabledHandler()
+    {
+        $container = new ContainerBuilder();
+        $loader = new MonologExtension();
+
+        $config = [
+            'handlers' => [
+                'main' => [
+                    'enabled' => false,
+                    'type' => 'stream',
+                    'path' => '%kernel.logs_dir%/%kernel.environment%.log',
+                    'level' => 'debug',
+                ],
+            ],
+        ];
+
+        $loader->load([$config], $container);
+
+        $this->assertFalse($container->hasDefinition('monolog.handler.main'));
     }
 }
 
