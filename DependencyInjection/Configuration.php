@@ -63,7 +63,7 @@ use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
  *   - [max_files]: files to keep, defaults to zero (infinite)
  *   - [level]: level name or int value, defaults to DEBUG
  *   - [bubble]: bool, defaults to true
- *   - [file_permission]: string|null, defaults to null
+ *   - [file_permission]: int|null, defaults to null (0644)
  *   - [use_locking]: bool, defaults to false
  *   - [filename_format]: string, defaults to '{filename}-{date}'
  *   - [date_format]: string, defaults to 'Y-m-d'
