@@ -364,6 +364,7 @@ use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
  *   - [disable_notification]: bool, defaults to false, sends the message silently. Users will receive a notification with no sound
  *   - [split_long_messages]: bool, defaults to false, split messages longer than 4096 bytes into multiple messages
  *   - [delay_between_messages]: bool, defaults to false, adds a 1sec delay/sleep between sending split messages
+ *   - [topic]: int, defaults to null, message_thread_id, unique identifier for the target message thread (topic) of the forum; for forum supergroups only
  *
  * - sampling:
  *   - handler: the wrapped handler's name
@@ -594,6 +595,7 @@ class Configuration implements ConfigurationInterface
                 ->booleanNode('disable_notification')->defaultNull()->end() // telegram
                 ->booleanNode('split_long_messages')->defaultFalse()->end() // telegram
                 ->booleanNode('delay_between_messages')->defaultFalse()->end() // telegram
+                ->scalarNode('topic')->defaultNull()->end() // telegram
                 ->integerNode('factor')->defaultValue(1)->min(1)->end() // sampling
                 ->arrayNode('tags') // loggly
                     ->beforeNormalization()
