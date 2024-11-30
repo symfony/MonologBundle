@@ -30,6 +30,7 @@
         <service id="monolog.formatter.json" class="Monolog\Formatter\JsonFormatter" public="false" />
         <service id="monolog.formatter.line" class="Monolog\Formatter\LineFormatter" public="false" />
         <service id="monolog.formatter.loggly" class="Monolog\Formatter\LogglyFormatter" public="false" />
+        <service id="monolog.formatter.mongo_db" class="Monolog\Formatter\MongoDBFormatter" public="false" />
         <service id="monolog.formatter.normalizer" class="Monolog\Formatter\NormalizerFormatter" public="false" />
         <service id="monolog.formatter.scalar" class="Monolog\Formatter\ScalarFormatter" public="false" />
         <service id="monolog.formatter.wildfire" class="Monolog\Formatter\WildfireFormatter" public="false" />
