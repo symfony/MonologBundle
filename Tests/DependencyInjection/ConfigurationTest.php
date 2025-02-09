@@ -111,6 +111,28 @@ class ConfigurationTest extends TestCase
         $this->assertEquals('gelf.publisher', $config['handlers']['gelf']['publisher']['id']);
     }
 
+    public function testGelfPublisherWithEncoder(): void
+    {
+        $configs = [
+            [
+                'handlers' => [
+                    'gelf' => [
+                        'type' => 'gelf',
+                        'publisher' => [
+                            'hostname' => 'localhost',
+                            'encoder' => 'compressed_json',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $config = $this->process($configs);
+
+        $this->assertEquals('localhost', $config['handlers']['gelf']['publisher']['hostname']);
+        $this->assertEquals('compressed_json', $config['handlers']['gelf']['publisher']['encoder']);
+    }
+
     public function testArrays()
     {
         $configs = [

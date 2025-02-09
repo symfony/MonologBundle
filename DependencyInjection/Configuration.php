@@ -50,9 +50,17 @@ use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
  *   - [bubble]: bool, defaults to true
  *
  * - gelf:
- *   - publisher: {id: ...} or {hostname: ..., port: ..., chunk_size: ...}
- *   - [level]: level name or int value, defaults to DEBUG
- *   - [bubble]: bool, defaults to true
+ * - publisher: (one of the following configurations)
+ *   # Option 1: Service-based configuration
+ *   - id: string, service id of a publisher implementation
+ *
+ *   # Option 2: Direct connection configuration
+ *   - hostname: string, server hostname
+ *   - [port]: int, server port (default: 12201)
+ *   - [chunk_size]: int, UDP packet size (default: 1420)
+ *   - [encoder]: string, encoding format ('json' or 'compressed_json')
+ * - [level]: level name or int value, defaults to DEBUG
+ * - [bubble]: bool, defaults to true
  *
  * - chromephp:
  *   - [level]: level name or int value, defaults to DEBUG
@@ -816,6 +824,7 @@ class Configuration implements ConfigurationInterface
                         ->scalarNode('hostname')->end()
                         ->scalarNode('port')->defaultValue(12201)->end()
                         ->scalarNode('chunk_size')->defaultValue(1420)->end()
+                        ->scalarNode('encoder')->end()
                     ->end()
                     ->validate()
                         ->ifTrue(function ($v) {

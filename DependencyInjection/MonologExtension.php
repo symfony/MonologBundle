@@ -24,6 +24,7 @@ use Symfony\Bridge\Monolog\Logger as LegacyLogger;
 use Symfony\Bridge\Monolog\Processor\SwitchUserTokenProcessor;
 use Symfony\Bridge\Monolog\Processor\TokenProcessor;
 use Symfony\Bridge\Monolog\Processor\WebProcessor;
+use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\Argument\BoundArgument;
 use Symfony\Component\DependencyInjection\ChildDefinition;
@@ -227,10 +228,28 @@ class MonologExtension extends Extension
                     ]);
                     $transport->setPublic(false);
 
+                    if (isset($handler['publisher']['encoder'])) {
+                        if ('compressed_json' === $handler['publisher']['encoder']) {
+                            $encoderClass = 'Gelf\Encoder\CompressedJsonEncoder';
+                        } elseif ('json' === $handler['publisher']['encoder']) {
+                            $encoderClass = 'Gelf\Encoder\JsonEncoder';
+                        } else {
+                            throw new InvalidConfigurationException('The gelf message encoder must be either "compressed_json" or "json".');
+                        }
+
+                        $encoder = new Definition($encoderClass);
+                        $encoder->setPublic(false);
+
+                        $transport->addMethodCall('setMessageEncoder', [$encoder]);
+                    }
+
                     $publisher = new Definition('Gelf\Publisher', []);
                     $publisher->addMethodCall('addTransport', [$transport]);
                     $publisher->setPublic(false);
                 } elseif (class_exists('Gelf\MessagePublisher')) {
+                    if (isset($handler['publisher']['encoder']) && 'compressed_json' !== $handler['publisher']['encoder']) {
+                        throw new InvalidConfigurationException('The Gelf\MessagePublisher publisher supports only the compressed json encoding. Omit the option to use the default encoding or use "compressed_json" as the encoder option.');
+                    }
                     $publisher = new Definition('Gelf\MessagePublisher', [
                         $handler['publisher']['hostname'],
                         $handler['publisher']['port'],
