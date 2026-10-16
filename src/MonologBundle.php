@@ -15,6 +15,7 @@ use Symfony\Bundle\MonologBundle\DependencyInjection\Compiler\AddHandlersToManag
 use Symfony\Bundle\MonologBundle\DependencyInjection\Compiler\AddProcessorsPass;
 use Symfony\Bundle\MonologBundle\DependencyInjection\Compiler\LoggerChannelPass;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\ServicesResetterInterface;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 
 /**
@@ -34,6 +35,11 @@ final class MonologBundle extends Bundle
     public function shutdown(): void
     {
         parent::shutdown();
+
+        // Container shutdown callbacks are available since Symfony 8.2.
+        if (is_a(ServicesResetterInterface::class, 'Symfony\Contracts\Service\ShutdownInterface', true)) {
+            return;
+        }
 
         if ($this->container?->has('monolog.handler_lifecycle_manager')) {
             $this->container->get('monolog.handler_lifecycle_manager')->close();

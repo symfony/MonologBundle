@@ -18,6 +18,7 @@ use Symfony\Component\DependencyInjection\Compiler\PriorityTaggedServiceTrait;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Reference;
+use Symfony\Component\DependencyInjection\ServicesResetterInterface;
 
 /**
  * Injects all handler services into the handler manager as an iterator of weak
@@ -45,5 +46,15 @@ class AddHandlersToManagerPass implements CompilerPassInterface
 
         $container->getDefinition('monolog.handler_lifecycle_manager')
             ->setArgument(0, new IteratorArgument($references));
+
+        // Container shutdown callbacks are available since Symfony 8.2.
+        if (!is_a(ServicesResetterInterface::class, 'Symfony\\Contracts\\Service\\ShutdownInterface', true)) {
+            return;
+        }
+
+        foreach ($references as $reference) {
+            $container->findDefinition((string) $reference)
+                ->addTag('kernel.reset', ['method' => 'close', 'on_shutdown' => 'only']);
+        }
     }
 }
